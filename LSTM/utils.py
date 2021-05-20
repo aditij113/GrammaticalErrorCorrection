@@ -27,6 +27,7 @@ def create_train_val_dataset(
         label_path: str,
         tokenizer: Callable,
         batch_size: int,
+        exp_name: str,
         val_split: float = 0.2) -> Tuple[tf.data.Dataset, tf.data.Dataset, int]:
     """Create tf.data.Dataset for training with batch size
 
@@ -37,6 +38,7 @@ def create_train_val_dataset(
             sentence and return tokenized input for model with padding and vocab.
             size
         batch_size (int): batch size for training
+        exp_name (str): unique experiment name for saving
         val_split (float): portion of dataset to be splited as validation set
 
     Returns:
@@ -54,7 +56,7 @@ def create_train_val_dataset(
     raw_data = data_text.splitlines()
     labels = np.array(label_text.splitlines()).astype(int)
 
-    tokens, vocab_size = tokenizer(raw_data)
+    tokens, vocab_size = tokenizer(raw_data, exp_name)
 
     dataset = tf.data.Dataset.from_tensor_slices((tokens, labels))
     size = len(dataset)

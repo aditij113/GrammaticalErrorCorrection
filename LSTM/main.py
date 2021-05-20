@@ -2,6 +2,7 @@ import os
 
 import tensorflow as tf
 from absl import app, flags
+from tensorflow.python.keras.backend import exp
 
 import utils
 
@@ -26,8 +27,9 @@ FLAGS = flags.FLAGS
 
 
 def main(_):
-    exp_name_temp = '_'.join(['{}' for _ in range(5)])
-    exp_name = exp_name_temp.format(FLAGS.model, FLAGS.tokenizer, FLAGS.epoch,
+    exp_name_temp = '_'.join(['{}' for _ in range(6)])
+    exp_name = exp_name_temp.format(FLAGS.model, FLAGS.bidirectional,
+                                    FLAGS.tokenizer, FLAGS.epoch,
                                     FLAGS.batch_size, FLAGS.lr_rate)
 
     model_path = os.path.join(FLAGS.model_path, exp_name)
@@ -38,11 +40,10 @@ def main(_):
 
     train_dataset, val_dataset, vocab_size = utils.create_train_val_dataset(
         FLAGS.data_path, FLAGS.label_path, tokenizer, FLAGS.batch_size,
-        FLAGS.val_split)
+        exp_name, FLAGS.val_split)
 
     device = '/gpu:0' if FLAGS.use_gpu else '/cpu:0'
 
-    print(train_dataset)
     with tf.device(device):
         encoder = utils.get_encoder(FLAGS.encoder)
         model = utils.get_model(FLAGS.model)(vocab_size,
@@ -56,6 +57,8 @@ def main(_):
             filepath=os.path.join(model_path, exp_name),
             verbose=1,
             save_best_only=True)
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(
+            log_dir=os.path.join(model_path, 'tensorboard'), histogram_freq=1)
 
         model.compile(optimizer=optimizer,
                       loss=loss_function,
@@ -63,8 +66,7 @@ def main(_):
         model.fit(train_dataset,
                   epochs=FLAGS.epoch,
                   validation_data=val_dataset,
-                  callbacks=ckpt_callback)
-        model.save(os.path.join(model_path, 'SavedModel'))
+                  callbacks=[ckpt_callback, tensorboard_callback])
 
 
 if __name__ == '__main__':

@@ -4,17 +4,19 @@ from typing import List, Sequence, Tuple
 
 import tensorflow as tf
 from nltk.tokenize import WordPunctTokenizer
+from numpy.lib.npyio import save
 
 if not os.path.exists('tokenizer'):
     os.mkdir('tokenizer')
 
 
-def simple_tokenizer(
-        raw_data: Sequence[str]) -> Tuple[List[Sequence[int]], int]:
+def simple_tokenizer(raw_data: Sequence[str],
+                     exp_name: str) -> Tuple[List[Sequence[int]], int]:
     """Use simple tokenization to convert texts to int ids with padding.
 
     Args:
         raw_data (Sequence[str]): sequence of string of raw data
+        exp_name (str): unique experiment name for saving
 
     Returns:
         padded_data (List): a list of sequence int ids with 0 padding at the
@@ -31,7 +33,10 @@ def simple_tokenizer(
     padded_data = tf.keras.preprocessing.sequence.pad_sequences(pre_pad_data,
                                                                 padding='post')
 
-    with open('tokenizer/simple_tokenizer.json', 'w') as f:
+    save_path = os.path.join('tokenizer/', exp_name)
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    with open(os.path.join(save_path, 'simple_tokenizer.json'), 'w') as f:
         json.dump(tokenizer.to_json(), f)
 
     return padded_data, len(tokenizer.word_index) + 1
