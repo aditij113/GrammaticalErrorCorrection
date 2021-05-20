@@ -1,0 +1,4 @@
+
+
+class BayesianModel:
+    """Model that predicts whether or not a sentence has a grammatical error based on n-gram prior probabilities."""
