@@ -2,24 +2,33 @@ from typing import Callable, Tuple
 
 import numpy as np
 import tensorflow as tf
+import transformers
 
 import model
 import token_util
 
 
-def get_encoder(encoder):
-    if encoder == 'default':
-        return tf.keras.layers.Embedding
+def get_encoder(encoder, input_dim, output_dim):
+    if encoder == 'simple':
+        return tf.keras.layers.Embedding(input_dim, output_dim)
+    if encoder == 'bert':
+        return transformers.TFBertMainLayer(
+            transformers.BertConfig.from_pretrained('bert-base-uncased'))
 
 
-def get_model(model_name):
-    if model_name == 'SimpleLSTM':
-        return model.SimpleLSTMModel
+def get_model(embedding, input_dim, output_dim, bidirectional):
+    embedding_layer = get_encoder(embedding, input_dim, output_dim)
+    if embedding == 'simple':
+        return model.SimpleModel(embedding_layer, bidirectional)
+    if embedding == 'bert':
+        return model.BertModel(embedding_layer, bidirectional)
 
 
 def get_tokenizer(tokenizer_name):
     if tokenizer_name == 'simple':
         return token_util.simple_tokenizer
+    if tokenizer_name == 'bert':
+        return token_util.bert_tokenizer
 
 
 def create_train_val_dataset(

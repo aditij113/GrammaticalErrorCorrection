@@ -3,8 +3,9 @@ import os
 from typing import List, Sequence, Tuple
 
 import tensorflow as tf
+import tensorflow_hub as hub
+import transformers
 from nltk.tokenize import WordPunctTokenizer
-from numpy.lib.npyio import save
 
 if not os.path.exists('tokenizer'):
     os.mkdir('tokenizer')
@@ -40,3 +41,13 @@ def simple_tokenizer(raw_data: Sequence[str],
         json.dump(tokenizer.to_json(), f)
 
     return padded_data, len(tokenizer.word_index) + 1
+
+
+def bert_tokenizer(raw_data: Sequence[str],
+                   exp_name: str) -> Tuple[List[Sequence[int]], int]:
+    punc_tokenizer = WordPunctTokenizer()
+    token_data = [['[CLS]'] + punc_tokenizer.tokenize(sent) + ['[SEP]']
+                  for sent in raw_data]
+    tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
+    pad_data = tokenizer(token_data, padding=True, is_split_into_words=True)
+    return dict(pad_data), tokenizer.vocab_size
