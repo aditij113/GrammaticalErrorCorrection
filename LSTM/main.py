@@ -7,7 +7,7 @@ from tensorflow.python.keras.backend import exp
 import utils
 
 flags.DEFINE_bool('bidirectional', False, 'Whether use bidirectional RNN')
-flags.DEFINE_enum('embedding', 'simple', ['simple', 'bert'],
+flags.DEFINE_enum('embedding', 'simple', ['simple', 'bert', 'gpt2'],
                   'Which tokenizer to use')
 flags.DEFINE_bool('use_gpu', True, 'Whethe use GPU for training.')
 flags.DEFINE_integer('epoch', 50, 'Number of epochs to train')

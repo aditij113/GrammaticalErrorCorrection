@@ -3,7 +3,6 @@ import os
 from typing import List, Sequence, Tuple
 
 import tensorflow as tf
-import tensorflow_hub as hub
 import transformers
 from nltk.tokenize import WordPunctTokenizer
 
@@ -49,5 +48,15 @@ def bert_tokenizer(raw_data: Sequence[str],
     token_data = [['[CLS]'] + punc_tokenizer.tokenize(sent) + ['[SEP]']
                   for sent in raw_data]
     tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
+    pad_data = tokenizer(token_data, padding=True, is_split_into_words=True)
+    return dict(pad_data), tokenizer.vocab_size
+
+
+def gpt2_tokenizer(raw_data: Sequence[str],
+                   exp_name: str) -> Tuple[List[Sequence[int]], int]:
+    punc_tokenizer = WordPunctTokenizer()
+    token_data = [punc_tokenizer.tokenize(sent) for sent in raw_data]
+    tokenizer = transformers.GPT2Tokenizer.from_pretrained('gpt2')
+    tokenizer.pad_token = tokenizer.unk_token
     pad_data = tokenizer(token_data, padding=True, is_split_into_words=True)
     return dict(pad_data), tokenizer.vocab_size

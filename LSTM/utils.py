@@ -14,6 +14,9 @@ def get_encoder(encoder, input_dim, output_dim):
     if encoder == 'bert':
         return transformers.TFBertMainLayer(
             transformers.BertConfig.from_pretrained('bert-base-uncased'))
+    if encoder == 'gpt2':
+        return transformers.TFGPT2MainLayer(
+            transformers.GPT2Config.from_pretrained('gpt2'))
 
 
 def get_model(embedding, input_dim, output_dim, bidirectional):
@@ -22,6 +25,9 @@ def get_model(embedding, input_dim, output_dim, bidirectional):
         return model.SimpleModel(embedding_layer, bidirectional)
     if embedding == 'bert':
         return model.BertModel(embedding_layer, bidirectional)
+    if embedding == 'gpt2':
+        embedding_layer.config.pad_token_id = embedding_layer.config.eos_token_id
+        return model.GPT2Model(embedding_layer, bidirectional)
 
 
 def get_tokenizer(tokenizer_name):
@@ -29,6 +35,8 @@ def get_tokenizer(tokenizer_name):
         return token_util.simple_tokenizer
     if tokenizer_name == 'bert':
         return token_util.bert_tokenizer
+    if tokenizer_name == 'gpt2':
+        return token_util.gpt2_tokenizer
 
 
 def create_train_val_dataset(
@@ -37,7 +45,8 @@ def create_train_val_dataset(
         tokenizer: Callable,
         batch_size: int,
         exp_name: str,
-        val_split: float = 0.2) -> Tuple[tf.data.Dataset, tf.data.Dataset, int]:
+        val_split: float = 0.2,
+        seed: int = 51) -> Tuple[tf.data.Dataset, tf.data.Dataset, int]:
     """Create tf.data.Dataset for training with batch size
 
     Args:
@@ -49,6 +58,7 @@ def create_train_val_dataset(
         batch_size (int): batch size for training
         exp_name (str): unique experiment name for saving
         val_split (float): portion of dataset to be splited as validation set
+        seed (int): integer seed for random shuffle. To force each split is consistent.
 
     Returns:
         train_dataset (tf.data.Dataset): dataset for training
@@ -70,7 +80,7 @@ def create_train_val_dataset(
     dataset = tf.data.Dataset.from_tensor_slices((tokens, labels))
     size = len(dataset)
     val_size = int(size * val_split)
-    dataset = dataset.shuffle(size)
+    dataset = dataset.shuffle(size, seed=seed)
     val_dataset = dataset.take(val_size).batch(batch_size)
     train_dataset = dataset.skip(val_size).batch(batch_size)
     return train_dataset, val_dataset, vocab_size

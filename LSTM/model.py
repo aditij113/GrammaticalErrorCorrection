@@ -36,3 +36,11 @@ class BertModel(LSTMModel):
         encoded = self._encoder(**inputs)
         decoded = self._decoder(encoded[0])
         return self._fc(decoded)
+
+
+class GPT2Model(LSTMModel):
+
+    def call(self, inputs):
+        encoded = self._encoder(**inputs)
+        decoded = self._decoder(encoded[0])
+        return self._fc(decoded)
