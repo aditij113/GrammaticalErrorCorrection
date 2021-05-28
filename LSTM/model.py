@@ -14,11 +14,15 @@ class LSTMModel(tf.keras.Model):
                  bidirectional: bool = False):
         super().__init__()
         self._encoder = encoder
+        self._pool1 = tf.keras.layers.AveragePooling1D()
+        self._dropout1 = tf.keras.layers.Dropout(0.6)
         if bidirectional:
             self._decoder = tf.keras.layers.Bidirectional(
                 tf.keras.layers.LSTM(50))
         else:
-            self._decoder = tf.keras.layers.LSTM(50)
+            self._decoder = tf.keras.layers.LSTM(50, return_sequences=True)
+        self._pool2 = tf.keras.layers.AveragePooling1D()
+        self._dropout2 = tf.keras.layers.Dropout(0.6)
         self._fc = tf.keras.layers.Dense(1, activation='sigmoid')
 
 
@@ -26,21 +30,33 @@ class SimpleModel(LSTMModel):
 
     def call(self, inputs):
         encoded = self._encoder(inputs)
-        decoded = self._decoder(encoded)
-        return self._fc(decoded)
+        pooled1 = self._pool1(encoded)
+        droped1 = self._dropout1(pooled1)
+        decoded = self._decoder(droped1)
+        pooled2 = self._pool2(decoded)
+        droped2 = self._dropout2(pooled2)
+        return self._fc(droped2)
 
 
 class BertModel(LSTMModel):
 
     def call(self, inputs):
         encoded = self._encoder(**inputs)
-        decoded = self._decoder(encoded[0])
-        return self._fc(decoded)
+        pooled1 = self._pool1(encoded[0])
+        droped1 = self._dropout1(pooled1)
+        decoded = self._decoder(droped1)
+        pooled2 = self._pool2(decoded)
+        droped2 = self._dropout2(pooled2)
+        return self._fc(droped2)
 
 
 class GPT2Model(LSTMModel):
 
     def call(self, inputs):
         encoded = self._encoder(**inputs)
-        decoded = self._decoder(encoded[0])
-        return self._fc(decoded)
+        pooled1 = self._pool1(encoded[0])
+        droped1 = self._dropout1(pooled1)
+        decoded = self._decoder(droped1)
+        pooled2 = self._pool2(decoded)
+        droped2 = self._dropout2(pooled2)
+        return self._fc(droped2)

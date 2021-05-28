@@ -2,7 +2,6 @@ import os
 
 import tensorflow as tf
 from absl import app, flags
-from tensorflow.python.keras.backend import exp
 
 import utils
 
@@ -29,14 +28,10 @@ def main(_):
                                     FLAGS.lr_rate)
 
     model_path = os.path.join(FLAGS.model_path, exp_name)
-    if not os.path.exists(model_path):
-        os.makedirs(model_path)
+    tokenizer = utils.get_test_tokenizer(FLAGS.embedding)
 
-    tokenizer = utils.get_tokenizer(FLAGS.embedding)
-
-    train_dataset, val_dataset, vocab_size = utils.create_train_val_dataset(
-        FLAGS.data_path, FLAGS.label_path, tokenizer, FLAGS.batch_size,
-        exp_name, FLAGS.val_split)
+    data, labels, vocab_size = utils.create_test_dataset(
+        FLAGS.data_path, FLAGS.label_path, tokenizer, exp_name)
 
     device = '/gpu:0' if FLAGS.use_gpu else '/cpu:0'
 
@@ -45,23 +40,22 @@ def main(_):
                                 vocab_size,
                                 FLAGS.output_dim,
                                 bidirectional=FLAGS.bidirectional)
-        loss_function = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+        loss_function = tf.keras.losses.BinaryCrossentropy()
         optimizer = tf.keras.optimizers.Adam(learning_rate=FLAGS.lr_rate)
-        accuracy_tracker = tf.keras.metrics.BinaryAccuracy()
-        ckpt_callback = tf.keras.callbacks.ModelCheckpoint(
-            filepath=os.path.join(model_path, exp_name),
-            verbose=1,
-            save_best_only=True)
-        tensorboard_callback = tf.keras.callbacks.TensorBoard(
-            log_dir=os.path.join(model_path, 'tensorboard'), histogram_freq=1)
 
         model.compile(optimizer=optimizer,
                       loss=loss_function,
-                      metrics=accuracy_tracker)
-        model.fit(train_dataset,
-                  epochs=FLAGS.epoch,
-                  validation_data=val_dataset,
-                  callbacks=[ckpt_callback, tensorboard_callback])
+                      metrics=[
+                          tf.keras.metrics.BinaryAccuracy(),
+                          tf.keras.metrics.AUC(),
+                          tf.keras.metrics.AUC(curve='pr')
+                      ])
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(
+            log_dir=os.path.join(model_path, 'evaluate'))
+
+        model.load_weights(os.path.join(model_path, 'saved_model'))
+
+        model.evaluate(x=data, y=labels, callbacks=[tensorboard_callback])
 
 
 if __name__ == '__main__':

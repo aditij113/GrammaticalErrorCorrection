@@ -1,4 +1,4 @@
-from typing import Callable, Tuple
+from typing import Callable, List, Sequence, Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -37,6 +37,11 @@ def get_tokenizer(tokenizer_name):
         return token_util.bert_tokenizer
     if tokenizer_name == 'gpt2':
         return token_util.gpt2_tokenizer
+
+
+def get_test_tokenizer(tokenizer_name):
+    if tokenizer_name == 'simple':
+        return token_util.simple_test_tokenizer
 
 
 def create_train_val_dataset(
@@ -84,3 +89,19 @@ def create_train_val_dataset(
     val_dataset = dataset.take(val_size).batch(batch_size)
     train_dataset = dataset.skip(val_size).batch(batch_size)
     return train_dataset, val_dataset, vocab_size
+
+
+def create_test_dataset(dataset_path: str, label_path: str, tokenizer: Callable,
+                        exp_name: str) -> Tuple[List[Sequence], np.array, int]:
+    with open(dataset_path, encoding='utf-8') as f:
+        data_text = f.read()
+
+    with open(label_path) as f:
+        label_text = f.read()
+
+    raw_data = data_text.splitlines()
+    labels = np.array(label_text.splitlines()).astype(int)
+
+    data, vocab_size = tokenizer(raw_data, exp_name)
+
+    return data, labels, vocab_size

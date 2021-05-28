@@ -42,6 +42,16 @@ def simple_tokenizer(raw_data: Sequence[str],
     return padded_data, len(tokenizer.word_index) + 1
 
 
+def simple_test_tokenizer(raw_data: Sequence[str],
+                          exp_name: str) -> Tuple[List[Sequence], int]:
+    save_path = os.path.join('tokenizer/', exp_name)
+    with open(os.path.join(save_path, 'simple_tokenizer.json')) as f:
+        json_text = json.load(f)
+        tokenizer = tf.keras.preprocessing.text.tokenizer_from_json(json_text)
+    data = tokenizer.texts_to_sequences(raw_data)
+    return data, len(tokenizer.word_index) + 1
+
+
 def bert_tokenizer(raw_data: Sequence[str],
                    exp_name: str) -> Tuple[List[Sequence[int]], int]:
     punc_tokenizer = WordPunctTokenizer()
