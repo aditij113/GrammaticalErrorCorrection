@@ -10,7 +10,6 @@ flags.DEFINE_enum('embedding', 'simple', ['simple', 'bert', 'gpt2'],
                   'Which tokenizer to use')
 flags.DEFINE_bool('use_gpu', True, 'Whethe use GPU for training.')
 flags.DEFINE_integer('epoch', 50, 'Number of epochs to train')
-flags.DEFINE_float('val_split', 0.2, 'Validation split for training')
 flags.DEFINE_string('data_path', None, 'Path to the inputs')
 flags.DEFINE_string('label_path', None, 'Path to labels')
 flags.DEFINE_integer('batch_size', 32, 'Training batch size')
@@ -30,8 +29,9 @@ def main(_):
     model_path = os.path.join(FLAGS.model_path, exp_name)
     tokenizer = utils.get_test_tokenizer(FLAGS.embedding)
 
-    data, labels, vocab_size = utils.create_test_dataset(
-        FLAGS.data_path, FLAGS.label_path, tokenizer, exp_name)
+    dataset, vocab_size = utils.create_test_dataset(FLAGS.data_path,
+                                                    FLAGS.label_path, tokenizer,
+                                                    exp_name)
 
     device = '/gpu:0' if FLAGS.use_gpu else '/cpu:0'
 
@@ -52,10 +52,9 @@ def main(_):
                       ])
         tensorboard_callback = tf.keras.callbacks.TensorBoard(
             log_dir=os.path.join(model_path, 'evaluate'))
-
-        model.load_weights(os.path.join(model_path, 'saved_model'))
-
-        model.evaluate(x=data, y=labels, callbacks=[tensorboard_callback])
+        ckpt = tf.train.Checkpoint(model)
+        ckpt.restore(os.path.join(model_path, 'saved_model')).expect_partial()
+        model.evaluate(dataset, callbacks=[tensorboard_callback])
 
 
 if __name__ == '__main__':

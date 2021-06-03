@@ -12,11 +12,16 @@ def get_encoder(encoder, input_dim, output_dim):
     if encoder == 'simple':
         return tf.keras.layers.Embedding(input_dim, output_dim)
     if encoder == 'bert':
-        return transformers.TFBertMainLayer(
+        encode = transformers.TFBertMainLayer(
             transformers.BertConfig.from_pretrained('bert-base-uncased'))
+        encode.trainable = False
+        return encode
+
     if encoder == 'gpt2':
-        return transformers.TFGPT2MainLayer(
+        encode = transformers.TFGPT2MainLayer(
             transformers.GPT2Config.from_pretrained('gpt2'))
+        encode.trainable = False
+        return encode
 
 
 def get_model(embedding, input_dim, output_dim, bidirectional):
@@ -42,6 +47,10 @@ def get_tokenizer(tokenizer_name):
 def get_test_tokenizer(tokenizer_name):
     if tokenizer_name == 'simple':
         return token_util.simple_test_tokenizer
+    if tokenizer_name == 'bert':
+        return token_util.bert_tokenizer
+    if tokenizer_name == 'gpt2':
+        return token_util.gpt2_tokenizer
 
 
 def create_train_val_dataset(
@@ -51,7 +60,8 @@ def create_train_val_dataset(
         batch_size: int,
         exp_name: str,
         val_split: float = 0.2,
-        seed: int = 51) -> Tuple[tf.data.Dataset, tf.data.Dataset, int]:
+        seed: int = 51,
+        max_length: int = 500) -> Tuple[tf.data.Dataset, tf.data.Dataset, int]:
     """Create tf.data.Dataset for training with batch size
 
     Args:
@@ -78,9 +88,9 @@ def create_train_val_dataset(
         label_text = f.read()
 
     raw_data = data_text.splitlines()
-    labels = np.array(label_text.splitlines()).astype(int)
+    labels = np.array(label_text.splitlines()).astype(int).reshape((-1, 1))
 
-    tokens, vocab_size = tokenizer(raw_data, exp_name)
+    tokens, vocab_size = tokenizer(raw_data, exp_name, max_length)
 
     dataset = tf.data.Dataset.from_tensor_slices((tokens, labels))
     size = len(dataset)
@@ -92,7 +102,7 @@ def create_train_val_dataset(
 
 
 def create_test_dataset(dataset_path: str, label_path: str, tokenizer: Callable,
-                        exp_name: str) -> Tuple[List[Sequence], np.array, int]:
+                        exp_name: str, batch_size: int, max_length: int):
     with open(dataset_path, encoding='utf-8') as f:
         data_text = f.read()
 
@@ -102,6 +112,7 @@ def create_test_dataset(dataset_path: str, label_path: str, tokenizer: Callable,
     raw_data = data_text.splitlines()
     labels = np.array(label_text.splitlines()).astype(int)
 
-    data, vocab_size = tokenizer(raw_data, exp_name)
+    tokens, vocab_size = tokenizer(raw_data, exp_name, max_length)
+    dataset = tf.data.Dataset.from_tensor_slices(tokens).batch(batch_size)
 
-    return data, labels, vocab_size
+    return dataset, labels, vocab_size

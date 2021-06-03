@@ -10,8 +10,8 @@ if not os.path.exists('tokenizer'):
     os.mkdir('tokenizer')
 
 
-def simple_tokenizer(raw_data: Sequence[str],
-                     exp_name: str) -> Tuple[List[Sequence[int]], int]:
+def simple_tokenizer(raw_data: Sequence[str], exp_name: str,
+                     max_length: int) -> Tuple[List[Sequence[int]], int]:
     """Use simple tokenization to convert texts to int ids with padding.
 
     Args:
@@ -30,8 +30,8 @@ def simple_tokenizer(raw_data: Sequence[str],
     tokenizer.fit_on_texts(token_data)
 
     pre_pad_data = tokenizer.texts_to_sequences(token_data)
-    padded_data = tf.keras.preprocessing.sequence.pad_sequences(pre_pad_data,
-                                                                padding='post')
+    padded_data = tf.keras.preprocessing.sequence.pad_sequences(
+        pre_pad_data, maxlen=max_length, padding='post')
 
     save_path = os.path.join('tokenizer/', exp_name)
     if not os.path.exists(save_path):
@@ -42,31 +42,43 @@ def simple_tokenizer(raw_data: Sequence[str],
     return padded_data, len(tokenizer.word_index) + 1
 
 
-def simple_test_tokenizer(raw_data: Sequence[str],
-                          exp_name: str) -> Tuple[List[Sequence], int]:
+def simple_test_tokenizer(raw_data: Sequence[str], exp_name: str,
+                          max_length: int) -> Tuple[List[Sequence], int]:
     save_path = os.path.join('tokenizer/', exp_name)
     with open(os.path.join(save_path, 'simple_tokenizer.json')) as f:
         json_text = json.load(f)
         tokenizer = tf.keras.preprocessing.text.tokenizer_from_json(json_text)
-    data = tokenizer.texts_to_sequences(raw_data)
-    return data, len(tokenizer.word_index) + 1
+    punc_tokenizer = WordPunctTokenizer()
+    token_data = [punc_tokenizer.tokenize(sent) for sent in raw_data]
+    pre_pad_data = tokenizer.texts_to_sequences(token_data)
+    padded_data = tf.keras.preprocessing.sequence.pad_sequences(
+        pre_pad_data, maxlen=max_length, padding='post')
+    return padded_data, len(tokenizer.word_index) + 1
 
 
-def bert_tokenizer(raw_data: Sequence[str],
-                   exp_name: str) -> Tuple[List[Sequence[int]], int]:
+def bert_tokenizer(raw_data: Sequence[str], exp_name: str,
+                   max_length: int) -> Tuple[List[Sequence[int]], int]:
     punc_tokenizer = WordPunctTokenizer()
     token_data = [['[CLS]'] + punc_tokenizer.tokenize(sent) + ['[SEP]']
                   for sent in raw_data]
     tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
-    pad_data = tokenizer(token_data, padding=True, is_split_into_words=True)
+    pad_data = tokenizer(token_data,
+                         padding='max_length',
+                         truncation=True,
+                         max_length=max_length,
+                         is_split_into_words=True)
     return dict(pad_data), tokenizer.vocab_size
 
 
-def gpt2_tokenizer(raw_data: Sequence[str],
-                   exp_name: str) -> Tuple[List[Sequence[int]], int]:
+def gpt2_tokenizer(raw_data: Sequence[str], exp_name: str,
+                   max_length: int) -> Tuple[List[Sequence[int]], int]:
     punc_tokenizer = WordPunctTokenizer()
     token_data = [punc_tokenizer.tokenize(sent) for sent in raw_data]
     tokenizer = transformers.GPT2Tokenizer.from_pretrained('gpt2')
     tokenizer.pad_token = tokenizer.unk_token
-    pad_data = tokenizer(token_data, padding=True, is_split_into_words=True)
+    pad_data = tokenizer(token_data,
+                         padding='max_length',
+                         max_length=max_length,
+                         truncation=True,
+                         is_split_into_words=True)
     return dict(pad_data), tokenizer.vocab_size

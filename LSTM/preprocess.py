@@ -43,10 +43,10 @@ def test_data_process():
     with open(FLAGS.input_path, 'r') as f:
         data_with_label = f.readlines()
 
-    data, label = []
+    data, label = [], []
     for line in data_with_label:
-        label.append(int(line[-1]))
-        data.append(line[:-2])
+        label.append(line[-2:])
+        data.append(line[:-3] + '\n')
 
     with open(os.path.join(FLAGS.output_path, 'test_data.txt'), 'w') as f:
         f.writelines(data)

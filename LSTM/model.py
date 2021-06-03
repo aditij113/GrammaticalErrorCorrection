@@ -14,15 +14,15 @@ class LSTMModel(tf.keras.Model):
                  bidirectional: bool = False):
         super().__init__()
         self._encoder = encoder
-        self._pool1 = tf.keras.layers.AveragePooling1D()
-        self._dropout1 = tf.keras.layers.Dropout(0.6)
         if bidirectional:
             self._decoder = tf.keras.layers.Bidirectional(
-                tf.keras.layers.LSTM(50))
+                tf.keras.layers.LSTM(120))
         else:
-            self._decoder = tf.keras.layers.LSTM(50, return_sequences=True)
-        self._pool2 = tf.keras.layers.AveragePooling1D()
-        self._dropout2 = tf.keras.layers.Dropout(0.6)
+            self._decoder = tf.keras.layers.LSTM(120, return_sequences=True)
+
+        self._pool = tf.keras.layers.AveragePooling1D(padding='same')
+        self._dropout = tf.keras.layers.Dropout(0.5)
+        self._flatten = tf.keras.layers.Flatten()
         self._fc = tf.keras.layers.Dense(1, activation='sigmoid')
 
 
@@ -30,33 +30,30 @@ class SimpleModel(LSTMModel):
 
     def call(self, inputs):
         encoded = self._encoder(inputs)
-        pooled1 = self._pool1(encoded)
-        droped1 = self._dropout1(pooled1)
-        decoded = self._decoder(droped1)
-        pooled2 = self._pool2(decoded)
-        droped2 = self._dropout2(pooled2)
-        return self._fc(droped2)
+        decoded = self._decoder(encoded)
+        pooled = self._pool(decoded)
+        droped = self._dropout(pooled)
+        flated = self._flatten(droped)
+        return self._fc(flated)
 
 
 class BertModel(LSTMModel):
 
     def call(self, inputs):
         encoded = self._encoder(**inputs)
-        pooled1 = self._pool1(encoded[0])
-        droped1 = self._dropout1(pooled1)
-        decoded = self._decoder(droped1)
-        pooled2 = self._pool2(decoded)
-        droped2 = self._dropout2(pooled2)
-        return self._fc(droped2)
+        decoded = self._decoder(encoded[0])
+        pooled = self._pool(decoded)
+        droped = self._dropout(pooled)
+        flated = self._flatten(droped)
+        return self._fc(flated)
 
 
 class GPT2Model(LSTMModel):
 
     def call(self, inputs):
         encoded = self._encoder(**inputs)
-        pooled1 = self._pool1(encoded[0])
-        droped1 = self._dropout1(pooled1)
-        decoded = self._decoder(droped1)
-        pooled2 = self._pool2(decoded)
-        droped2 = self._dropout2(pooled2)
-        return self._fc(droped2)
+        decoded = self._decoder(encoded[0])
+        pooled = self._pool(decoded)
+        droped = self._dropout(pooled)
+        flated = self._flatten(droped)
+        return self._fc(flated)
